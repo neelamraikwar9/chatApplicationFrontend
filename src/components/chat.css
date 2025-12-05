@@ -30,3 +30,8 @@
   .message-field{
     min-width: 500px
   }
+
+  .typing-indicator{
+    color: green; 
+    
+  }

@@ -3,6 +3,8 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import MessageList from "./MessageList";
 import "./chat.css";
+import { picker } from 'emoji-picker-react';
+// const messagesEndRef = useRef(null); 
 
 const socket = io("http://localhost:5001");
 
@@ -11,10 +13,31 @@ export const Chat = ({ user }) => {
   const [currentChat, setCurrentChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiRef = useRef(null);
 
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
   const typingTimer = useRef(null);
+
+
+//   useEffect(() => {
+//   socket.on("receive_message", (saved) => {
+//     setMessages(prev => [...prev, {
+//       ...saved,
+//       // Safe timestamp fallback: createdAt > sendTime > now
+//       createdAt: new Date(saved.createdAt || saved.sendTime || Date.now())
+//     }]);
+//   });
+//   return () => socket.off("receive_message");
+// }, []);
+
+// useEffect(() => {
+//   // messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+// }, [messages]);
+
+
+
 
   useEffect(() => {
     // Fetch all users excluding the current user;
@@ -41,22 +64,7 @@ export const Chat = ({ user }) => {
       }
     });
 
-    //  listen for typing
-    // socket.on("receiveTypInd", (data) => {
-    //   console.log('RECEIVED_typing:', data); 
-    //   console.log(currentChat, "currentChat");
     
-    //   if (data.sender === currentChat || data.receiver === currentChat) {
-    //     setTypingUser(data.sender);
-    //   }
-    // });
-
-    // socket.on("recStop_typingInd", (data) => {
-    //   if (data.sender === currentChat || data.receiver === currentChat) {
-    //     setTypingUser(null);
-    //   }
-    // });
-
     socket.on("typing", (data) => {
       if(data.receiver === currentChat){
         setTypingUser(data.sender);
@@ -68,7 +76,6 @@ export const Chat = ({ user }) => {
         setTypingUser(null);
       }
     })
-
 
     return () => {
       socket.off("receive_message");
@@ -101,9 +108,17 @@ export const Chat = ({ user }) => {
       message: currentMessage,
     };
     socket.emit("send_message", messageData);
-    setMessages((prev) => [...prev, messageData]);
+    // setMessages((prev) => [...prev, messageData]);
     setCurrentMessage("");
   };
+
+
+  // Add emoji to input
+  const onEmojiClick = (emojiData) => {
+    setCurrentMessage(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);  // Close picker
+  };
+
 
 
   // useEffect(() => {
@@ -130,9 +145,9 @@ export const Chat = ({ user }) => {
       {currentChat && (
         <div className="chat-window">
           <h5>You are chatting with {currentChat}</h5>
-          <MessageList messages={messages} user={user} />
+          <MessageList messages={messages} user={user}/>
           {typingUser && (
-            <div className="typing-indicator">{typingUser} is typing...</div>
+            <div className="typing-indicator">{typingUser} is typing...  </div>
           )}
    
 
@@ -165,6 +180,10 @@ export const Chat = ({ user }) => {
                     });
                   }, 1500);
                 }}
+
+
+
+                
             />
 
             <button className="btn-prime" onClick={sendMessage}>

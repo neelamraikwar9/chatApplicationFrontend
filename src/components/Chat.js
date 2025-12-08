@@ -3,8 +3,9 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import MessageList from "./MessageList";
 import "./chat.css";
-import { picker } from 'emoji-picker-react';
-// const messagesEndRef = useRef(null); 
+import EmojiPicker from 'emoji-picker-react'; // Default import
+
+
 
 const socket = io("http://localhost:5001");
 
@@ -13,12 +14,99 @@ export const Chat = ({ user }) => {
   const [currentChat, setCurrentChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiRef = useRef(null);
 
+  
+  // const [selectedEmoji, setSelectedEmoji] = useState([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
-  const typingTimer = useRef(null);
+  const typingTimerRef = useRef(null);
+
+
+
+
+  useEffect(() => {
+
+    console.log('Socket ID:', socket.id); // Verify connection
+      
+    const fetchUsers = async () => {
+      try {
+        const { data } = await axios.get("http://localhost:5001/users", {
+          params: { currentUser: user.username },
+        });
+        setUsers(data);
+      } catch (error) {
+        console.error("Error fetching users", error);
+      }
+    };
+
+    fetchUsers();
+
+
+  const handleReceiveMessage = (msg) => {
+    console.log("RECEIVED:", msg);
+    setMessages(prev => [...prev, {
+      ...msg, 
+      status: msg.sender === user.username ? 'sent' : 'delivered'
+    }]);
+  };
+
+  const handleTyping = (data) => {
+    if (data.receiver === currentChat) setTypingUser(data.sender);
+  };
+
+  const handleStopTyping = (data) => {
+    if (data.receiver === currentChat) setTypingUser(null);
+  };
+
+  const handleMessageDelivered = ({ messageId }) => {
+    setMessages(prev => prev.map(m => 
+      m.messageId === messageId ? { ...m, status: 'delivered' } : m
+    ));
+  };
+
+  const handleMessageRead = ({ messageIds }) => {
+    setMessages(prev => prev.map(m => 
+      messageIds.includes(m.messageId) ? { ...m, status: 'read' } : m
+    ));
+  };
+
+  socket.on("receive_message", handleReceiveMessage);
+  socket.on("typing", handleTyping);
+  socket.on("stop_typing", handleStopTyping);
+  socket.on("message_delivered", handleMessageDelivered);
+  socket.on("message_read", handleMessageRead);
+
+  return () => {
+    socket.off("receive_message", handleReceiveMessage);
+    socket.off("typing", handleTyping);
+    socket.off("stop_typing", handleStopTyping);
+    socket.off("message_delivered", handleMessageDelivered);
+    socket.off("message_read", handleMessageRead);
+  };
+}, [currentChat, user.username]); // ✅ Stable deps only
+
+
+
+
+
+// ✅ Auto-mark unread messages as read when viewing chat
+useEffect(() => {
+  if (currentChat) {
+    const unread = messages.filter(
+      m => m.status !== 'read' && m.sender !== user.username
+    );
+    if (unread.length > 0) {
+      socket.emit('message_read', { 
+        messageIds: unread.map(m => m.messageId),
+        sender: currentChat  // Notify original sender
+      });
+    }
+  }
+}, [currentChat]); // ✅ Only when switching chats
+
+
+
 
 
 //   useEffect(() => {
@@ -39,52 +127,98 @@ export const Chat = ({ user }) => {
 
 
 
-  useEffect(() => {
-    // Fetch all users excluding the current user;
 
-      console.log('Socket ID:', socket.id); // Verify connection
+
+
+
+
+//   useEffect(() => {
+//     // Fetch all users excluding the current user;
+
+//       console.log('Socket ID:', socket.id); // Verify connection
       
-    const fetchUsers = async () => {
-      try {
-        const { data } = await axios.get("http://localhost:5001/users", {
-          params: { currentUser: user.username },
-        });
-        setUsers(data);
-      } catch (error) {
-        console.error("Error fetching users", error);
-      }
-    };
+//     const fetchUsers = async () => {
+//       try {
+//         const { data } = await axios.get("http://localhost:5001/users", {
+//           params: { currentUser: user.username },
+//         });
+//         setUsers(data);
+//       } catch (error) {
+//         console.error("Error fetching users", error);
+//       }
+//     };
 
-    fetchUsers();
+//     fetchUsers();
 
-    // Listen for incoming messages
-    socket.on("receive_message", (data) => {
-      if (data.sender === currentChat || data.receiver === currentChat) {
-        setMessages((prev) => [...prev, data]);
-      }
-    });
+//     // Listen for incoming messages
+//     // socket.on("receive_message", (data) => {
+//       // console.log(data, "chedkingdkljdfjkat")
+//     //   if (data.sender === currentChat || data.receiver === currentChat) {
+//     //     setMessages((prev) => [...prev, data]);
+//     //     console.log(messages, "fdfkdfkjdfsjfdjklfd")
+//     //   }
+//     // });
+
+//     // New message arrives (for receiver)
+//   socket.on("receive_message", (data) => {
+//     console.log(data, "recijdkjMessgdkfj")
+//     setMessages(prev => [...prev, {...data, status: data.sender === user.username ? 'sent' : 'delivered'}]);
+
+//     console.log(setMessages, "setMesskjfdk");
+//   });
 
     
-    socket.on("typing", (data) => {
-      if(data.receiver === currentChat){
-        setTypingUser(data.sender);
-      }
-    });
+//     socket.on("typing", (data) => {
+//       if(data.receiver === currentChat){
+//         setTypingUser(data.sender);
+//       }
+//     });
 
-    socket.on("stop_typing", (data) => {
-      if(data.receiver === currentChat){
-        setTypingUser(null);
-      }
-    })
+//     socket.on("stop_typing", (data) => {
+//       if(data.receiver === currentChat){
+//         setTypingUser(null);
+//       }
+//     })
 
-    return () => {
-      socket.off("receive_message");
+// // New message arrives (for receiver)
+//   // socket.on('message', (msg) => {
+//   //   setMessages(prev => [...prev, {...msg, status: msg.sender === user._id ? 'delivered' : 'sent'}]);
+//   // });
 
-      socket.off("typing");
-      socket.off("stop_typing");
+//   //Sender confirmation: message delivered
+//   socket.on('message_delivered', ({ messageId }) => {
+//     setMessages(prev => prev.map(m => m.messageId === messageId ? { ...m, status: 'delivered' } : m));
+//   });
 
-    };
-  }, [currentChat]);
+//   //Sender confirmation: message read
+//    socket.on('message_read', ({ messageIds }) => {
+//     setMessages(prev => prev.map(m => messageIds.includes(m.messageId) ? { ...m, status: 'read' } : m));
+//   });
+
+
+//     // D. Auto-mark as read when user views chat
+//   const unread = messages.filter(m => m.status !== 'read' && m.sender !== user.username);
+//   if (unread.length > 0) {
+//     socket.emit('message_read', { 
+//       messageIds: unread.map(m => m.messageId),
+//       sender: user.username 
+//     });
+//   }
+
+
+//     return () => {
+//       socket.off("receive_message");
+//       socket.off("typing");
+//       socket.off("stop_typing");
+
+//       // socket.off("message");
+//       socket.off("message_delivered");
+//       socket.off("message_read");
+
+
+//     };
+
+  // }, [messages, currentChat]);
 
 
 
@@ -102,28 +236,42 @@ export const Chat = ({ user }) => {
   };
 
   const sendMessage = () => {
+     if (!currentMessage.trim()) return;
+
     const messageData = {
       sender: user.username,
       receiver: currentChat,
       message: currentMessage,
     };
     socket.emit("send_message", messageData);
+    // console.log(messageData, "msgData"); 
     // setMessages((prev) => [...prev, messageData]);
-    setCurrentMessage("");
+    // console.log(messages, "messages");
+    setCurrentMessage("");  
   };
 
 
-  // Add emoji to input
-  const onEmojiClick = (emojiData) => {
-    setCurrentMessage(prev => prev + emojiData.emoji);
-    setShowEmojiPicker(false);  // Close picker
-  };
+
+
+//   const sendMessage = () => {
+//   socket.emit('message', {     // Backend adds status automatically
+//     sender: user.username,
+//     receiver: currentChat,
+//     message: currentMessage
+//   });
+//   setMessages((prev) => [...prev, messageData]);
+//   setCurrentMessage('');
+// };
+
+  
 
 
 
   // useEffect(() => {
   //     console.log(typingUser, "typingUser");
   //   })
+
+
 
   return (
     <div className="chat-container">
@@ -161,10 +309,10 @@ export const Chat = ({ user }) => {
                 setCurrentMessage(e.target.value);
 
                 // Inline typing logic with ref cleanup
-                  if (typingTimer.current) clearTimeout(typingTimer.current);
+                  if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
 
                   //show typing message;
-                  if (isTyping && currentChat) {
+                  if (!isTyping && currentChat) {
                     setIsTyping(true);
                     socket.emit("typing", {
                       sender: user.username,
@@ -172,7 +320,7 @@ export const Chat = ({ user }) => {
                     });
                   }
 
-                  typingTimer.current = setTimeout(() => {
+                  typingTimerRef.current = setTimeout(() => {
                     setIsTyping(false);
                     socket.emit("stop_typing", {
                       sender: user.username,
@@ -180,11 +328,27 @@ export const Chat = ({ user }) => {
                     });
                   }, 1500);
                 }}
-
-
-
-                
             />
+
+            <div>
+              <button className="" onClick={() => (setShowEmojiPicker(!showEmojiPicker))}>{showEmojiPicker ? "Hide Picker" : "Show Picker"}</button>
+
+              {showEmojiPicker && <div>
+                <EmojiPicker onEmojiClick={(emojiData) => 
+                (setCurrentMessage((prev) => prev + emojiData.emoji))}/>
+              </div>}
+
+              {/* {showEmojiPicker && <div>
+                <EmojiPicker onEmojiClick={(emojiData) => (setSelectedEmoji((prev) => [...prev , emojiData.emoji]))}/>
+              </div>} */}
+
+              {/* <div>
+                { selectedEmoji.length > 0 && <p>{selectedEmoji.join("")}
+                </p> 
+                }
+              </div> */}
+    
+            </div>
 
             <button className="btn-prime" onClick={sendMessage}>
               Send

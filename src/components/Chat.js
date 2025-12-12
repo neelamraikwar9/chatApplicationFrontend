@@ -22,77 +22,7 @@ export const Chat = ({ user }) => {
   // const [typingUser, setTypingUser] = useState(null);
   // const typingTimerRef = useRef(null);
 
-  //   useEffect(() => {
-
-  //     console.log('Socket ID:', socket.id); // Verify connection
-
-
-  //   const handleReceiveMessage = (msg) => {
-  //     console.log("RECEIVED:", msg);
-
-  //     setMessages(prev => [...prev, {
-  //       ...msg,
-  //       status: msg.sender === user.username ? 'sent' : 'delivered'
-  //     }]);
-
-  //     // setMessages(prev => [...prev, msg]);  // Add to list
-  //   };
-
-  //   // const handleTyping = (data) => {
-  //   //   if (data.receiver === currentChat) setTypingUser(data.sender);
-  //   // };
-
-  //   // const handleStopTyping = (data) => {
-  //   //   if (data.receiver === currentChat) setTypingUser(null);
-  //   // };
-
-  //   const handleMessageDelivered = ({ messageId }) => {
-  //     console.log(messageId, "messageId");
-  //     return setMessages(prev => prev.map(m => {
-
-  //       console.log(m.messageId === messageId, "checking")
-  //        return m.messageId === messageId ? { ...m, status: 'delivered' } : m
-  //     }
-  //     ));
-
-  //   };
-
-  //   const handleMessageRead = ({ messageId }) => {
-  //     console.log(messageId, "messageId");
-  //     setMessages(prev => prev.map(m =>
-  //       messageId.includes(m.messageId) ? { ...m, status: 'read' } : m
-  //     ));
-  //   };
-
-  //   socket.on("receive_message", handleReceiveMessage);
-  //   // socket.on("typing", handleTyping);
-  //   // socket.on("stop_typing", handleStopTyping);
-  //   socket.on("message_delivered", handleMessageDelivered);
-  //   socket.on("message_read", handleMessageRead);
-
-  //   return () => {
-  //     socket.off("receive_message", handleReceiveMessage);
-  //     // socket.off("typing", handleTyping);
-  //     // socket.off("stop_typing", handleStopTyping);
-  //     socket.off("message_delivered", handleMessageDelivered);
-  //     socket.off("message_read", handleMessageRead);
-  //   };
-  // }, [currentChat, user.username]); // ✅ Stable deps only
-
-  // ✅ Auto-mark unread messages as read when viewing chat
-  // useEffect(() => {
-  //   if (currentChat) {
-  //     const unread = messages.filter(
-  //       m => m.status !== 'read' && m.sender !== user.username
-  //     );
-  //     if (unread.length > 0) {
-  //       socket.emit('message_read', {
-  //         messageIds: unread.map(m => m.messageId),
-  //         sender: currentChat  // Notify original sender
-  //       });
-  //     }
-  //   }
-  // }, [currentChat]); // ✅ Only when switching chats
+  
 
   //..............................................................................
 
@@ -130,8 +60,15 @@ export const Chat = ({ user }) => {
       if (data.sender === currentChat || data.receiver === currentChat) {
         setMessages((prev) => [...prev, data]);
         console.log(messages, "fdfkdfkjdfsjfdjklfd")
+
+        // Confirm delivery back to sender
+        if(data.receiver === user.username){
+        socket.emit("message_delivered", {messageId: data.messageId});
+        }
       }
     });
+
+
 
 
     // socket.on("typing", (data) => {
@@ -157,6 +94,20 @@ export const Chat = ({ user }) => {
   }, [messages, currentChat]);
 
 
+  // Sender side - listen for delivery
+useEffect(() => {
+  socket.on("message_delivered", ({ messageId }) => {
+    setMessages(prev => prev.map(msg =>
+      msg.messageId === messageId
+        ? { ...msg, status: "delivered" }  // ✓✓
+        : msg
+    ));
+  });
+  
+  return () => socket.off("message_delivered");
+}, []);
+
+
 
 // Read Recipt, mark as read when user reads messages; 
 
@@ -177,21 +128,44 @@ useEffect(() => {
       });
     }
   }
+  
 }, [currentChat, messages, user.username]);
 
 
 
-// 2. Update sender UI when messages read
+// // 2. Update sender UI when messages read
+// useEffect(() => {
+//   socket.on("message_read", ({ messageIds }) => {
+//     setMessages(prev => prev.map(msg =>
+//       messageIds.includes(msg.messageId)
+//         ? { ...msg, status: "read" }
+//         : msg
+//     ));
+//   });
+//   return () => socket.off("message_read");
+// }, []);
+
+
+
+// 2. SECOND: Listen for read confirmation (sender side)
 useEffect(() => {
-  socket.on("message_read", ({ messageIds }) => {
+  const handleMessageRead = ({ messageIds }) => {
+    if (!messageIds || !Array.isArray(messageIds)) return;
+    
     setMessages(prev => prev.map(msg =>
       messageIds.includes(msg.messageId)
         ? { ...msg, status: "read" }
         : msg
     ));
-  });
-  return () => socket.off("message_read");
-}, []);
+  };
+
+  socket.on("message_read", handleMessageRead);  // Named handler
+
+  return () => {
+    socket.off("message_read", handleMessageRead);  // Removes ONLY this handler
+  };
+}, []);  // Empty deps
+
 
 
 

@@ -76,8 +76,9 @@ const MessageList = ({ messages, user }) => {
                   {msg.status === "sent"
                     ? "✓"
                     : msg.status === "delivered"
-                    ? "✓✓"
-                    : "✓✓💙"}
+                    ? "✓✓" 
+                    : msg.status === "read"
+                    ? "✓✓💙" : "✓"}
                 </span>
               )}
             </div>

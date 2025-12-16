@@ -14,13 +14,29 @@ export const Chat = ({ user }) => {
   console.log(messages, "messages")
   const [currentMessage, setCurrentMessage] = useState("");
 
+
+
+  // const [typing, setTyping] = useState(false);
+  // const [isTyping, setIsTyping] = useState(false);
+
  
 
   // const [selectedEmoji, setSelectedEmoji] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  // const [isTyping, setIsTyping] = useState(false);
-  // const [typingUser, setTypingUser] = useState(null);
+  
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+  console.log("isTyping state in Chat changed:", isTyping, "for", currentChat);
+}, [isTyping, currentChat]);
+
+  // const [typingUser, setTypingUser] = useState();
+
   // const typingTimerRef = useRef(null);
+  // const [isTyping, setIsTyping] = useState(false);
+const typingTimeout = useRef(null);
+
+
 
   
 
@@ -69,27 +85,9 @@ export const Chat = ({ user }) => {
     });
 
 
-
-
-    // socket.on("typing", (data) => {
-    //   if(data.receiver === currentChat){
-    //     setTypingUser(data.sender);
-    //   }
-    // });
-
-    // socket.on("stop_typing", (data) => {
-    //   if(data.receiver === currentChat){
-    //     setTypingUser(null);
-    //   }
-    // })
-
-
-
     return () => {
       socket.off("receive_message");
 
-      // socket.off("typing");
-      // socket.off("stop_typing");
     };
   }, [messages, currentChat]);
 
@@ -133,20 +131,6 @@ useEffect(() => {
 
 
 
-// // 2. Update sender UI when messages read
-// useEffect(() => {
-//   socket.on("message_read", ({ messageIds }) => {
-//     setMessages(prev => prev.map(msg =>
-//       messageIds.includes(msg.messageId)
-//         ? { ...msg, status: "read" }
-//         : msg
-//     ));
-//   });
-//   return () => socket.off("message_read");
-// }, []);
-
-
-
 // 2. SECOND: Listen for read confirmation (sender side)
 useEffect(() => {
   const handleMessageRead = ({ messageIds }) => {
@@ -169,17 +153,6 @@ useEffect(() => {
 
 
 
-//   useEffect(() => {
-//   socket.on("message_read", ({ messageIds }) => {
-//     setMessages(prev => prev.map(msg => 
-//       messageIds.includes(msg.messageId) 
-//         ? { ...msg, status: "read" }  // Update to read
-//         : msg
-//     ));
-//   });
-
-//   return () => socket.off("message_read");
-// }, []);
 
   // ..........................................................................
 
@@ -198,6 +171,9 @@ useEffect(() => {
 
 
   const sendMessage = () => {
+    // socket.emit('stop typing', currentChat._id); 
+
+
     const messageData = {
       sender: user.username,
       receiver: currentChat,
@@ -205,14 +181,157 @@ useEffect(() => {
     };
 
     socket.emit("send_message", messageData);
-    // console.log(messageData.receiver, "messagedatarecirver");
-
+  
     setCurrentMessage("");
+
   };
 
   
 
- 
+// const handleInputIndicator = () => {
+//   // if (currentMessage.length === 0) return; // Avoid spam on delete
+//     if (!currentChat || currentMessage.length === 0) return;
+  
+//   socket.emit("typing", { 
+//     sender: user.username, 
+//     // currentChat: user.username  // Backend expects this as room name
+//      currentChat
+//   });
+  
+//   if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+//   typingTimerRef.current = setTimeout(() => {
+//     socket.emit("stop_typing", { 
+//       sender: user.username, 
+//       // currentChat: user.username 
+//       currentChat
+//     });
+//   }, 3000);
+// };
+
+
+
+
+// useEffect(() => {
+//   const handleTypingIndicator = (data) => {
+//       console.log("Received typing:", data, "currentChat:", currentChat);
+
+//         if (data.chatId === currentChat && data.sender !== user.username) {
+//       setIsTyping(data.isTyping);
+//     }
+//   };
+
+//   socket.on("user_typing", handleTypingIndicator);
+
+//   return () => socket.off("user_typing", handleTypingIndicator);
+// }, [currentChat, user.username]);
+
+
+// useEffect(() => {
+//   socket.on('typing', () => setIsTyping(true));
+//   socket.on('stop typing', () => setIsTyping(false));
+// }, []); 
+
+
+// const handleTypingIndicator = (e) => {
+//   // if (!socketConnected)
+//   // setCurrentChat(e.target.value);
+
+//   if(!typing){
+//     setTyping(true); 
+//     socket.emit('typing', currentChat._id);
+//   }
+
+//   let lastTypingTime = new Date().getTime();
+//   var timerLength = 3000; 
+
+//   setTimeout(() => {
+//     var timeNow = new Date().getTime();
+//     var timeDiff = timeNow - lastTypingTime;
+
+//     if(timeDiff >= timerLength && typing){
+//       socket.emit('stop typing', currentChat._id);
+//       setTyping(false); 
+//     }
+//   }, timerLength);
+// }
+
+
+// Add this useEffect ONCE (empty deps array)
+// useEffect(() => {
+//   const handleTyping = (data) => {
+//     console.log('✅ Typing received:', data);
+//     if (data.sender === currentChat) {
+//       setIsTyping(data.isTyping);
+//     }
+//   };
+
+//   socket.on('user_typing', handleTyping);
+//   return () => socket.off('user_typing', handleTyping);
+// }, []); // Empty deps = runs once forever
+
+
+
+
+// const handleTypingIndicator = (e) => {
+//   setCurrentMessage(e.target.value);
+  
+//   if (!currentChat) return;
+  
+//   socket.emit('typing', { 
+//     sender: user.username, 
+//     receiver: currentChat 
+//   });
+  
+//   if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+//   typingTimerRef.current = setTimeout(() => {
+//     socket.emit('stop_typing', { 
+//       sender: user.username, 
+//       receiver: currentChat 
+//     });
+//   }, 1500);
+// };/
+
+
+
+// JOIN ROOM FIRST THING
+useEffect(() => {
+  if (user.username) {
+    console.log("🚀 JOINING:", user.username);
+    socket.emit("user_Room", user.username);
+  }
+}, [user.username]);
+
+// LISTEN FOR TYPING (runs ONCE)
+useEffect(() => {
+  socket.on("typing", (typing) => {
+    console.log("📱 TYPING EVENT:", typing);
+    setIsTyping(typing);
+  });
+  return () => socket.off("typing");
+}, []);
+
+
+
+// PERFECT TYPING HANDLER
+const handleTyping = (e) => {
+  setCurrentMessage(e.target.value);
+  
+  if (!currentChat) return;
+  
+  // Clear old timeout
+  if (typingTimeout.current) clearTimeout(typingTimeout.current);
+  
+  // Tell room you're typing
+  socket.emit("typing", currentChat);
+  
+  // Auto-stop after 1.5s
+  typingTimeout.current = setTimeout(() => {
+    socket.emit("stop_typing", currentChat);
+  }, 2000);
+};
+
+
+
 
   return (
     <div className="chat-container">
@@ -234,10 +353,10 @@ useEffect(() => {
       {currentChat && (
         <div className="chat-window">
           <h5>You are chatting with {currentChat}</h5>
-          <MessageList messages={messages} user={user} />
-          {/* {typingUser && (
-            <div className="typing-indicator">{typingUser} is typing...  </div>
-          )} */}
+          <MessageList messages={messages} user={user} 
+          isTyping={isTyping}  
+          currentChat={currentChat} />
+
 
           <div className="message-field">
             <input
@@ -247,26 +366,10 @@ useEffect(() => {
               style={{ minWidth: "400px" }}
               onChange={(e) => {
                 setCurrentMessage(e.target.value);
+                // handleInputIndicator(e);
 
-                // Inline typing logic with ref cleanup
-                // if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                handleTyping(e)
 
-                // //show typing message;
-                // if (!isTyping && currentChat) {
-                //   setIsTyping(true);
-                //   socket.emit("typing", {
-                //     sender: user.username,
-                //     receiver: currentChat,
-                //   });
-                // }
-
-                // typingTimerRef.current = setTimeout(() => {
-                //   setIsTyping(false);
-                //   socket.emit("stop_typing", {
-                //     sender: user.username,
-                //     receiver: currentChat,
-                //   });
-                // }, 1500);
               }}
             />
 
@@ -292,11 +395,6 @@ useEffect(() => {
                 <EmojiPicker onEmojiClick={(emojiData) => (setSelectedEmoji((prev) => [...prev , emojiData.emoji]))}/>
               </div>} */}
 
-              {/* <div>
-                { selectedEmoji.length > 0 && <p>{selectedEmoji.join("")}
-                </p> 
-                }
-              </div> */}
             </div>
 
             <button className="btn-prime" onClick={sendMessage}>

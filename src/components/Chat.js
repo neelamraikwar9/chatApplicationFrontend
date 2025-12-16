@@ -58,7 +58,8 @@ const typingTimeout = useRef(null);
 
     const fetchUsers = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5001/users", {
+        // const { data } = await axios.get("http://localhost:5001/users", {
+        const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/users", {
           params: { currentUser: user.username },
         });
         setUsers(data);
@@ -158,7 +159,7 @@ useEffect(() => {
 
   const fetchMessages = async (receiver) => {
     try {
-      const { data } = await axios.get("http://localhost:5001/messages", {
+      const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/messages", {
         params: { sender: user.username, receiver },
       });
       setMessages(data);

@@ -5,7 +5,9 @@ import MessageList from "./MessageList";
 import "./chat.css";
 import EmojiPicker from "emoji-picker-react"; // Default import
 
-const socket = io("http://localhost:5001");
+// const socket = io("http://localhost:5001");
+const socket = io("wss://chatapplicationfrontend-2.onrender.com");
+
 
 export const Chat = ({ user }) => {
   const [users, setUsers] = useState([]);

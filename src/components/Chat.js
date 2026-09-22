@@ -5,8 +5,8 @@ import MessageList from "./MessageList";
 import "./chat.css";
 import EmojiPicker from "emoji-picker-react"; // Default import
 
-// const socket = io("http://localhost:5001");
-const socket = io("wss://chatapplicationfrontend-2.onrender.com");
+const socket = io("http://localhost:5001");
+// const socket = io("wss://chatapplicationfrontend-2.onrender.com");
 
 
 export const Chat = ({ user }) => {
@@ -60,8 +60,8 @@ const typingTimeout = useRef(null);
 
     const fetchUsers = async () => {
       try {
-        // const { data } = await axios.get("http://localhost:5001/users", {
-        const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/users", {
+        const { data } = await axios.get("http://localhost:5001/users", {
+        // const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/users", {
           params: { currentUser: user.username },
         });
         setUsers(data);
@@ -161,7 +161,9 @@ useEffect(() => {
 
   const fetchMessages = async (receiver) => {
     try {
-      const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/messages", {
+       const { data } = await axios.get("http://localhost:5001/messages", {
+      // const { data } = await axios.get("https://chatapplicationbackend-1-5uw0.onrender.com/messages", {
+
         params: { sender: user.username, receiver },
       });
       setMessages(data);
@@ -183,6 +185,7 @@ useEffect(() => {
       message: currentMessage,
     };
 
+    console.log(messageData, "mesgatsdf")
     socket.emit("send_message", messageData);
   
     setCurrentMessage("");
@@ -190,109 +193,6 @@ useEffect(() => {
   };
 
   
-
-// const handleInputIndicator = () => {
-//   // if (currentMessage.length === 0) return; // Avoid spam on delete
-//     if (!currentChat || currentMessage.length === 0) return;
-  
-//   socket.emit("typing", { 
-//     sender: user.username, 
-//     // currentChat: user.username  // Backend expects this as room name
-//      currentChat
-//   });
-  
-//   if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-//   typingTimerRef.current = setTimeout(() => {
-//     socket.emit("stop_typing", { 
-//       sender: user.username, 
-//       // currentChat: user.username 
-//       currentChat
-//     });
-//   }, 3000);
-// };
-
-
-
-
-// useEffect(() => {
-//   const handleTypingIndicator = (data) => {
-//       console.log("Received typing:", data, "currentChat:", currentChat);
-
-//         if (data.chatId === currentChat && data.sender !== user.username) {
-//       setIsTyping(data.isTyping);
-//     }
-//   };
-
-//   socket.on("user_typing", handleTypingIndicator);
-
-//   return () => socket.off("user_typing", handleTypingIndicator);
-// }, [currentChat, user.username]);
-
-
-// useEffect(() => {
-//   socket.on('typing', () => setIsTyping(true));
-//   socket.on('stop typing', () => setIsTyping(false));
-// }, []); 
-
-
-// const handleTypingIndicator = (e) => {
-//   // if (!socketConnected)
-//   // setCurrentChat(e.target.value);
-
-//   if(!typing){
-//     setTyping(true); 
-//     socket.emit('typing', currentChat._id);
-//   }
-
-//   let lastTypingTime = new Date().getTime();
-//   var timerLength = 3000; 
-
-//   setTimeout(() => {
-//     var timeNow = new Date().getTime();
-//     var timeDiff = timeNow - lastTypingTime;
-
-//     if(timeDiff >= timerLength && typing){
-//       socket.emit('stop typing', currentChat._id);
-//       setTyping(false); 
-//     }
-//   }, timerLength);
-// }
-
-
-// Add this useEffect ONCE (empty deps array)
-// useEffect(() => {
-//   const handleTyping = (data) => {
-//     console.log('✅ Typing received:', data);
-//     if (data.sender === currentChat) {
-//       setIsTyping(data.isTyping);
-//     }
-//   };
-
-//   socket.on('user_typing', handleTyping);
-//   return () => socket.off('user_typing', handleTyping);
-// }, []); // Empty deps = runs once forever
-
-
-
-
-// const handleTypingIndicator = (e) => {
-//   setCurrentMessage(e.target.value);
-  
-//   if (!currentChat) return;
-  
-//   socket.emit('typing', { 
-//     sender: user.username, 
-//     receiver: currentChat 
-//   });
-  
-//   if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-//   typingTimerRef.current = setTimeout(() => {
-//     socket.emit('stop_typing', { 
-//       sender: user.username, 
-//       receiver: currentChat 
-//     });
-//   }, 1500);
-// };/
 
 
 
@@ -305,6 +205,7 @@ useEffect(() => {
 }, [user.username]);
 
 // LISTEN FOR TYPING (runs ONCE)
+
 useEffect(() => {
   socket.on("typing", (typing) => {
     console.log("📱 TYPING EVENT:", typing);
